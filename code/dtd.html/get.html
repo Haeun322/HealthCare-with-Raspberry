@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<script>
+
+    const haha = async() => {
+        let data = await fetch("http://heartratestory.com/news/single/");
+        let a = await data.text();
+        let DOM = new DOMParser();
+        const file = DOM.parseFromString(a, "text/html");
+        let t = toString(file.querySelector(".wp-block-table"));
+        console.log(t);
+    }
+
+    haha();
+
+</script>
+</body>
+</html>

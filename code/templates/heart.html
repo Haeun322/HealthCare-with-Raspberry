@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    #canvas{
+        position: relative;
+        z-index: 1;
+    }
+    #BG{
+        position: relative;
+        z-index: 2;
+    }
+</style>
+<body>
+    <div id="FIRST"> FIRST </div>
+    <div id="SECOND"> SECOND </div>
+    <div id="THIRD"></div>
+    <canvas id="canvas" width="1170" height="450" z-index="1"></canvas>
+    <canvas id="BG" width="1260" height="450" z-index="2"></canvas>
+    <script src="https://code.jquery.com/jquery-3.6.1.min.js" integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous"></script>
+    <script>
+
+        const canvas = document.querySelector("#canvas");
+        const backcanvas = document.querySelector("#BG");
+        const FIRST = document.querySelector("#FIRST");
+        const SECOND = document.querySelector("#SECOND");
+        const THIRD = document.querySelector("#THIRD");
+        const ctx = canvas.getContext("2d");
+        const bctx = backcanvas.getContext("2d");
+        let col = 0, nowT = 0; //프레임
+        let mod = ""; // heart: 심박수 측정, stress: 스트레스 지수 측정, sleep: 수면 패턴? 측정
+
+        class displaying{
+            constructor(){
+
+            }
+            displayHeart = (all_avr, now_heartRate) => { // Heart 모드에서 평균 심박수, 현재 심박수 출력
+                FIRST.innerHTML = `Average Heart Rate: ${all_avr}`;
+                SECOND.innerHTML = `Now Heart Rate: ${now_heartRate}`;
+            }
+            displayStress = (avr_gap, now_gap) => { // Stress 모드에서 평균 스트레스지수, 현재 스트레스지수 출력
+                FIRST.innerHTML = `Average Stress Indice: ${avr_gap}`;
+                SECOND.innerHTML = `Now Stress Indice: ${now_gap}`;
+            }
+            displaySleep = (now_heartRate, all_avr, status) => { // Sleep 모드에서 평균 심박수, 현재 심박수, 측정 상태(측정 전/측정 중)
+                if(status) STRING = "Now Measuring";
+                else STRING = "Before Measuring";
+                FIRST.innerHTML = `Average Heart Rate: ${all_avr}`;
+                SECOND.innerHTML = `Now Heart Rate: ${now_heartRate}`;
+                THIRD.innerHTML = STRING;
+            }
+        }
+        let Display = new displaying();
+
+        class settings{
+            constructor(){
+                this.canvasStyle();
+                this.backSet();
+                this.backCoo();
+                this.getMod();
+                this.displayBasicSettings();
+                console.log("success");
+            }
+            whitebox(){ //하얀 박스(그래프 양쪽? 가리는 용도)
+                bctx.beginPath();
+                bctx.fillStyle = "#FFFFFF";
+                bctx.fillRect(0, 0, 180, 450);
+                bctx.closePath();
+                bctx.fill();
+                bctx.stroke();
+                bctx.beginPath();
+                bctx.fillStyle = "#FFFFFF";
+                bctx.fillRect(1080, 0, 1260, 450);
+                bctx.closePath();
+                bctx.fill();
+                bctx.stroke();
+            }
+            axis(){ //x축, y축 드로잉
+                bctx.moveTo(180, 0);
+                bctx.lineTo(180, 450);
+                bctx.lineTo(1080, 450);
+                bctx.stroke();
+            }
+            backSet(){ //backcanvas 세팅
+                this.whitebox();
+                this.axis();
+            }
+            canvasStyle(){ //캔버스 기본 설정
+                canvas.style.position = "absolute";
+                canvas.style.top = (window.innerHeight - 450)/2 + "px";
+                canvas.style.left = (window.innerWidth - 1170)/2 + "px";
+                ctx.clearRect(0, 0, 1170, 450);
+                backcanvas.style.position = "absolute";
+                backcanvas.style.top = (window.innerHeight - 450)/2 + "px";
+                backcanvas.style.left = ((window.innerWidth - 990)/2-180) + "px";
+                bctx.clearRect(0, 0, 1260, 450);
+            }
+            backCoo(){ // Y축 그리기
+                bctx.fillStyle = "#808080";
+                bctx.strokeStyle = "#808080";
+                bctx.font = "normal bold 15px sans-serif";
+                bctx.textAline = "left";
+                bctx.textBaseline = "bottom";
+                bctx.fillText("0", 135, 450);
+                bctx.fillText("40", 135, 345);
+                bctx.fillText("80", 135, 240);
+                bctx.fillText("120", 135, 135);
+                bctx.fillText("160", 135, 30);
+            }
+            getMod(){ // 현재 URL 이용해서 모드 구하기, 안쓴 것 같음
+                const URL = document.location.href;
+                const reg = /\:5000\/([a-z]+)/;
+                
+                let t = URL.match(reg);
+                mod = t[1];
+            }
+            displayBasicSettings(){ // 아무 값이 입력되지 않은 기본 디스플레이 세팅 해두기
+                Display.displayHeart("---", "---");
+            }
+        }
+
+        let set = new settings();
+
+        const getData = async (url) => { // url에서 정보 받아오기
+            let obj;
+            await fetch(url)
+            .then(response => response.text())
+            .then(data => {
+                obj = JSON.parse(data);
+            })
+            return obj;
+        }
+
+        const getCoordinate = (data) => { // datas.html 내용에 따른 좌표 구하기(canvas 그래프 용도)
+            let arr = new Array();
+            let add = 14-data.length;
+            for(let i = 0; i < data.length; i++){
+                arr[i] = [(i+add)*90, 420-(21/8)*data[i]+30];
+            }
+            // console.log(arr);
+            return arr;
+        }
+
+        const drawLine = (coo) => { // coo(죄표) 이용해서 그래프 선 그리기
+            ctx.beginPath();
+            ctx.moveTo(coo[1][0], coo[1][1]);
+            for(let i = 2; i < coo.length; i++){
+                ctx.lineTo(coo[i][0], coo[i][1]);
+            }
+            ctx.strokeStyle = "#FFB6C1"
+            ctx.lineWidth = "3";
+            ctx.stroke();
+        }
+
+        const drawValue = (data, coo) => { // coo(좌표), data(값) 이용하여 각 점에 값 써주기?
+            ctx.fillStyle = "#808080";
+            ctx.strokeStyle = "#808080";
+            ctx.font = "normal bold 15px sans-serif";
+            ctx.textAline = "left";
+            ctx.textBaseline = "bottom";
+            for(let i = 1; i < data.length-1; i++){
+                let temp = 15;
+                if(data[i] < 100) temp = 10;
+                ctx.fillText(`${data[i]}`, coo[i][0]-temp, coo[i][1]+30);
+            }
+        }
+
+        const drawDot = (coo) => { // coo(좌표) 이용하여 점 찍기
+            for(let i = 1; i < coo.length-1; i++){
+                ctx.beginPath();
+                ctx.strokeStyle = "#FFB6C1";
+                ctx.arc(coo[i][0], coo[i][1], 4, 0, 2*Math.PI);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        const changeSET = async (url) => { // 그래프 그리고 수치 표시하기
+            let data = await getData(url);
+            let m = await getData("/mode");
+            let coo = getCoordinate(data.data_arr);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(m.mode == 0) location.href = "/main";
+            
+            console.log(data.mode);
+
+            drawLine(coo);
+            drawValue(data.data_arr, coo);
+            drawDot(coo);
+            if(mod === "heart"){
+                Display.displayHeart(data.all_avr, data.now_heartRate);
+            }else if(mod === "stress"){
+                Display.displayStress(data.avr_gap, data.now_gap);
+            }else if(mod === "sleep"){
+                Display.displaySleep(data.all_avr, data.now_heartRate, data.status);
+                if(data.status == "END") location.href = `/resault/${mod}`;
+            }
+
+            console.log("OKAY"); //////
+        }
+
+        const frames = () => {
+            col++;
+            if(col%60 === 0){
+                changeSET("/get_heart");
+                $('#canvas').offset({top: (window.innerHeight - 450)/2, left: (window.innerWidth - 1080)/2-90});
+                col = 0;
+                nowT++;
+            }else{
+                $('#canvas').offset({top: (window.innerHeight - 450)/2, left: (window.innerWidth - 1080-col*3)/2-90});
+            }
+            if(nowT === 60){
+                location.href = `/resault/${mod}`;
+                return;
+            }
+            requestAnimationFrame(frames);
+        };
+        /* 위쪽 설명
+           1. 1초에 한 번씩 캔버스에 그래프 그리고 원래 지점으로 이동
+           2. canvas를 1/60초마다 조금씩 이동시켜 그래프가 움직이는 것처럼 표현
+           3. 60초가 지나면 결과창으로 이동
+        */
+
+        frames();
+
+    </script>
+</body>
+</html>

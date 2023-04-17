@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    #ha{
+        margin-top: 200px;
+    }
+    #FIRST{
+        font-size: 25px;
+        text-align: center;
+
+        position: absolute;
+        left: calc(50% - 150px);
+        margin-top: 50px;
+
+        width: 300px;
+        height: 30px;
+    }
+    #SECOND{
+        font-size: 25px;
+        text-align: center;
+
+        position: absolute;
+        left: calc(50% - 150px);
+        margin-top: 130px;
+
+        width: 300px;
+        height: 30px;
+    }
+</style>
+<body>
+    <div id="ha">
+        <div id="FIRST">  </div>
+        <div id="SECOND">  </div>
+    </div>
+    <script>
+        const FIRST = document.querySelector("#FIRST");
+        const SECOND = document.querySelector("#SECOND");
+        let cnt = 0;
+
+        const getData = async (url) => { // url에서 정보 받아오기
+            let obj;
+            await fetch(url)
+            .then(response => response.text())
+            .then(data => {
+                obj = JSON.parse(data);
+            })
+            return obj;
+        }
+
+        const devRes = async () => { // 서버에서 결과값이랑 모드 받아와서 모드에 맞는 결과값 출력
+            let res = await getData("/get_res");
+            
+            if(res.mode == 1){
+                FIRST.innerHTML = `Final Heart Rate : ${res.resHB}`;
+            
+                let str = "Normal";
+                if(res.resHB < 60){
+                    str = "Slow";
+                }else if(res.resHB > 100){
+                    str = "Fast";
+                }
+                
+                SECOND.innerHTML = `Your Heart Beat is ${str}`;
+            }else if(res.mode == 2){
+                FIRST.innerHTML = `Final Stress Indice : ${res.resST}`;
+
+                let str = "Low"
+                if(res.resST > 15){
+                    str = "High"
+                }else if(res.resST >= 10){
+                    str = "Normal"
+                }
+                SECOND.innerHTML = `Your Stress Indice is ${str}`;
+            }else if(res.mode == 3){
+                let h = 0, m = 0, s = 0;
+                s = res.count%60;
+                m = res.count/60;
+                h = m/60;
+                m %= 60;
+                FIRST.innerHTML = `Final Heart Rate : ${res.resHB}`;
+                SECOND.innerHTML = `Measuring Time : ${h}H ${m}M ${s}S`;
+            }
+        }
+
+        const checkMode = async () => { // 모드가 home로 변하면 메인 화면으로 감
+            let data = await getData("/mode");
+            if(data.mode == 0){
+                location.href = "/main";
+            }
+        }
+
+        const frames = () => { // 모드 체크 1초에 한 번 계속 반복
+            cnt++;
+            if(cnt >= 60){
+                checkMode();
+                cnt = 0;
+            }
+            requestAnimationFrame(frames);
+        }
+
+        devRes();
+        frames();
+
+    </script>
+</body>
+</html>

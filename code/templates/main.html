@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    #go{
+        color: #00ff00;
+        font-size: 45px;
+        text-align: center;
+
+        position: absolute;
+        left: calc(50% - 300px);
+        top: 40%;
+
+        width: 600px;
+        height: 30px;
+    }
+    #go:hover{
+        opacity: 0.5;
+    }
+</style>
+<body>
+    <div id="go"> HealthCare Service </div>
+    <script>
+        const GO = document.querySelector("#go");
+        let checkHover = false;
+        let rgb = {red: 0, green: 0, blue: 0};
+        let cnt = 0;
+
+        const getData = async (url) => { // url 에서 정보 받아오기
+            let obj;
+            await fetch(url)
+            .then(response => response.text())
+            .then(data => {
+                obj = JSON.parse(data);
+            })
+            return obj;
+        }
+
+        const work = async () => { // 모드 확인해서 페이지 넘겨주기
+            data = await getData("/mode");
+            mode = mode.mode;
+            if(mode == 1) location.href = "heart";
+            else if(mode == 2) location.href = "stress";
+            else if(mode == 3) location.href = "sleep";
+        }
+
+        const frames = () => { // 모드 확인하는 것 1초에 한 번 계속 반복
+            cnt++;
+            if(cnt >= 60){
+                work();
+                cnt = 0;
+            }
+            requestAnimationFrame(frames);
+        }
+
+        frames();
+
+        GO.addEventListener("mouseover", e => {
+            if(!checkHover){
+                checkHover = true;
+                rgb.red = Math.round(
+                    Math.random(256)*256
+                );
+                rgb.green = Math.round(
+                    Math.random(256)*256
+                );
+                rgb.blue = Math.round(
+                    Math.random(256)*256
+                );
+                go.style.color = `#${(rgb.red).toString(16)}${(rgb.green).toString(16)}${(rgb.blue).toString(16)}`;
+                console.log(rgb);
+            }
+        });
+        GO.addEventListener("mouseout", e => {
+            checkHover = false;
+        });
+        /* 위에 2개 설명
+           GO(HealthCare Service 쓰여 있는 div)에 마우스 올리면 글씨 색 변함
+           근데 마우스 계속 올려놔도 색 계속 변하지 않음
+        */
+        
+    </script>
+</body>
+</html>
